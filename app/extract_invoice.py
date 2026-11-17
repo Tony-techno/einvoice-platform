@@ -49,32 +49,39 @@ def model_candidates():
     return result
 
 
-def extract(path):
+def extract_from_bytes(data: bytes, mime_type: str = "image/png"):
+    """Returns (Invoice, model_name_used). Raises RuntimeError if every model fails."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not set.")
+
     client = genai.Client(
-        api_key=os.environ["GEMINI_API_KEY"],
+        api_key=api_key,
         http_options=types.HttpOptions(api_version="v1beta", timeout=60000),
     )
-    image = types.Part.from_bytes(data=Path(path).read_bytes(), mime_type="image/png")
+    image = types.Part.from_bytes(data=data, mime_type=mime_type)
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=Invoice,
         temperature=0,
     )
-    last_error = None
+    errors = []
     for name in model_candidates():
         try:
-            print("Trying model:", name, flush=True)
             response = client.models.generate_content(
                 model=name, contents=[PROMPT, image], config=config
             )
-            return Invoice.model_validate_json(response.text)
+            return Invoice.model_validate_json(response.text), name
         except Exception as e:
-            last_error = e
-            print("  failed:", type(e).__name__, str(e)[:80].replace("\n", " "), flush=True)
-    raise SystemExit(f"All models failed. Last error: {last_error}")
+            errors.append(f"{name}: {type(e).__name__}")
+    raise RuntimeError("All models failed (" + "; ".join(errors) + ")")
 
 
 if __name__ == "__main__":
     path = sys.argv[1] if len(sys.argv) > 1 else "sample_invoices/invoice_001.png"
-    invoice = extract(path)
+    try:
+        invoice, used = extract_from_bytes(Path(path).read_bytes(), "image/png")
+    except RuntimeError as e:
+        raise SystemExit(str(e))
+    print("Model used:", used)
     print(invoice.model_dump_json(indent=2))
