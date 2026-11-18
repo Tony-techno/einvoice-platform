@@ -1,0 +1,59 @@
+name: Docker image
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t einvoice-platform:ci .
+
+      - name: Check that no secrets are inside the image
+        run: |
+          docker run --rm --entrypoint sh einvoice-platform:ci \
+            -c 'test ! -e /app/.env && echo "No .env file in the image"'
+
+      - name: Start the container
+        run: docker run -d --name app -p 8501:8501 einvoice-platform:ci
+
+      - name: Wait until the app is healthy
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8501/_stcore/health; then
+              echo
+              echo "App is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs app
+          exit 1
+
+      - name: Work out the image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Log in to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker tag einvoice-platform:ci "$IMAGE:latest"
+          docker tag einvoice-platform:ci "$IMAGE:${GITHUB_SHA::7}"
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${GITHUB_SHA::7}"
