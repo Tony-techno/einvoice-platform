@@ -7,6 +7,7 @@ sys.path.insert(0, str(ROOT))
 
 import streamlit as st
 
+from app import db
 from app.extract_invoice import Invoice, extract_from_bytes
 from app.fixer import diff_invoices, suggest_fix
 from app.sample_data import GOOD_INVOICE
@@ -40,12 +41,14 @@ def run_extraction(data: bytes, mime: str):
             return
     st.session_state["invoice"] = invoice.model_dump()
     st.session_state["note"] = f"Extracted by {model}"
+    db.log_event("extraction", invoice.model_dump(), model)
     st.session_state.pop("fix", None)
 
 
 def load_data(data: dict, note: str):
     st.session_state["invoice"] = data
     st.session_state["note"] = note
+    db.log_event("sample_loaded", data)
     st.session_state.pop("fix", None)
 
 
@@ -154,6 +157,9 @@ if data:
                             "explanation": suggestion.explanation,
                             "model": model,
                         }
+                        db.log_event(
+                            "fix_suggested", suggestion.corrected_invoice.model_dump(), model
+                        )
 
         fix = st.session_state.get("fix")
         if fix:
@@ -180,5 +186,33 @@ if data:
             if changes and st.button("Apply this fix"):
                 st.session_state["invoice"] = fix["corrected"]
                 st.session_state["note"] = "Corrected using an AI-suggested fix"
+                db.log_event("fix_applied", fix["corrected"], fix["model"])
                 st.session_state.pop("fix", None)
                 st.rerun()
+
+st.divider()
+with st.expander("📊 Analytics (SQL on DuckDB)"):
+    stats = db.get_stats()
+    if not stats or stats["total"] == 0:
+        st.info("No activity logged yet. Load or extract an invoice, then reopen this section.")
+    else:
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Events logged", stats["total"])
+        c2.metric("Passed validation", stats["passed"])
+        c3.metric("Failed validation", stats["failed"])
+
+        st.write("Most common rule failures")
+        if stats["top_rules"]:
+            st.dataframe(stats["top_rules"])
+        else:
+            st.write("No rule failures recorded.")
+
+        st.write("Recent activity")
+        st.dataframe(stats["recent"])
+
+        st.caption(
+            "Shared by all visitors. The log is a local DuckDB file, so on the free host "
+            "it resets when the app restarts."
+        )
+        with st.expander("Show the SQL behind 'Most common rule failures'"):
+            st.code(db.TOP_RULES_SQL, language="sql")
