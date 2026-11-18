@@ -2,9 +2,24 @@
 
 ![Tests](https://github.com/Tony-techno/einvoice-platform/actions/workflows/tests.yml/badge.svg)
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://einvoice-platform-gqkssavfmmblqxacg8ydpd.streamlit.app/)
+
 A small demo that turns an invoice image into a validated, UAE-style e-invoice (UBL 2.1 XML), with an AI-assisted "Report a problem" feature that suggests fixes and checks them before they are applied.
 
 > **Demo only.** This is a mock built on fake data. It is not an official UAE FTA / PINT-AE submission, and the XML has not been certified by any accredited provider.
+
+## Try the live demo
+
+**Live app:** https://einvoice-platform-gqkssavfmmblqxacg8ydpd.streamlit.app/
+
+The app sleeps when idle. If you see a "Wake up" button, click it and wait about 30 seconds.
+
+A 2-minute walkthrough:
+
+1. Choose **Sample data, with errors (no AI)** and click **Load sample data with errors**. Six rule violations are listed and no XML is produced.
+2. Open **Report a problem**, type `Supplier TRN is 100123456700003 and the due date should be 2026-12-10`, and click **Suggest a fix**. Review the proposed changes, then click **Apply this fix**.
+3. The invoice now passes all rules and the UBL XML can be downloaded.
+4. Optional (uses the AI): choose **Upload an invoice image** and upload [this sample invoice](https://github.com/Tony-techno/einvoice-platform/raw/main/sample_invoices/invoice_001.png) to see the fields extracted from an image.
 
 ## What it does
 
@@ -87,4 +102,6 @@ docs/         screenshots and an example XML output
 
 ## Roadmap
 
-Planned next: deploy to Google Cloud Run with automatic deploys from GitHub, log results to BigQuery, a scheduled daily summary, and further integrations. This section will be updated as each part is built.
+Built so far, using free tools only (no billing account): extraction, validation, XML generation, AI-assisted fixes, automated tests, and a live deployment.
+
+Planned next, also free: a daily summary job and file-triggered processing using GitHub Actions, results logging with DuckDB and SQL, a Docker image built in CI, Telegram and email notifications, and a 2FA login. Google Cloud services that need a billing account (such as Cloud Run and Cloud Scheduler) are intentionally not used.
