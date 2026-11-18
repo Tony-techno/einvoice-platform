@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT))
 import streamlit as st
 
 from app.extract_invoice import Invoice, extract_from_bytes
+from app.fixer import diff_invoices, suggest_fix
 from app.sample_data import GOOD_INVOICE
 from app.ubl import build_ubl_xml
 from app.validator import validate
@@ -39,11 +40,13 @@ def run_extraction(data: bytes, mime: str):
             return
     st.session_state["invoice"] = invoice.model_dump()
     st.session_state["note"] = f"Extracted by {model}"
+    st.session_state.pop("fix", None)
 
 
 def load_data(data: dict, note: str):
     st.session_state["invoice"] = data
     st.session_state["note"] = note
+    st.session_state.pop("fix", None)
 
 
 OPTIONS = [
@@ -114,3 +117,68 @@ if data:
             st.dataframe(
                 [{"Rule": i.rule, "Field": i.field, "Problem": i.message} for i in issues]
             )
+
+    st.divider()
+    with st.expander("🛠 Report a problem / get a suggested fix", expanded=bool(issues)):
+        st.write(
+            "Describe what is wrong, attach a screenshot, or both. "
+            "If the invoice already has validation errors, you can also just click the button."
+        )
+        report_text = st.text_area(
+            "What is wrong?",
+            key="report_text",
+            placeholder="e.g. The supplier TRN is 100123456700003",
+        )
+        report_shot = st.file_uploader(
+            "Screenshot (optional)", type=["png", "jpg", "jpeg"], key="report_shot"
+        )
+
+        if st.button("Suggest a fix"):
+            if not report_text.strip() and report_shot is None and not issues:
+                st.warning("Add a description or a screenshot first.")
+            else:
+                with st.spinner("Analysing the problem with Gemini..."):
+                    try:
+                        suggestion, model = suggest_fix(
+                            data,
+                            issues,
+                            report_text,
+                            report_shot.getvalue() if report_shot else None,
+                            report_shot.type if report_shot else "image/png",
+                        )
+                    except Exception as e:
+                        st.error(f"Could not get a suggestion: {e}")
+                    else:
+                        st.session_state["fix"] = {
+                            "corrected": suggestion.corrected_invoice.model_dump(),
+                            "explanation": suggestion.explanation,
+                            "model": model,
+                        }
+
+        fix = st.session_state.get("fix")
+        if fix:
+            st.subheader("Suggested fix")
+            st.write(fix["explanation"])
+
+            changes = diff_invoices(data, fix["corrected"])
+            if changes:
+                st.write("Changes proposed:")
+                st.dataframe(changes)
+            else:
+                st.info("No changes were suggested.")
+
+            fixed_issues = validate(Invoice.model_validate(fix["corrected"]))
+            if not fixed_issues:
+                st.success("The corrected invoice passes all rules.")
+            else:
+                st.warning(f"The corrected invoice still has {len(fixed_issues)} problem(s):")
+                st.dataframe(
+                    [{"Rule": i.rule, "Field": i.field, "Problem": i.message} for i in fixed_issues]
+                )
+
+            st.caption(f"Suggested by {fix['model']}. Review the changes before applying.")
+            if changes and st.button("Apply this fix"):
+                st.session_state["invoice"] = fix["corrected"]
+                st.session_state["note"] = "Corrected using an AI-suggested fix"
+                st.session_state.pop("fix", None)
+                st.rerun()
