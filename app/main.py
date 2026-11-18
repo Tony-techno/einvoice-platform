@@ -7,9 +7,10 @@ sys.path.insert(0, str(ROOT))
 
 import streamlit as st
 
-from app import db
+from app import db, db_admin
 from app.extract_invoice import Invoice, extract_from_bytes
 from app.fixer import diff_invoices, suggest_fix
+from app.login import require_login
 from app.sample_data import GOOD_INVOICE
 from app.ubl import build_ubl_xml
 from app.validator import validate
@@ -23,6 +24,8 @@ st.caption(
     "This is a mock of UAE-style e-invoicing for demonstration. Use fake data only."
 )
 
+role = require_login()
+
 with st.sidebar:
     st.header("About")
     st.write(
@@ -30,6 +33,11 @@ with st.sidebar:
         "The XML follows the UBL 2.1 structure but is not an official PINT-AE submission."
     )
     st.write("Tip: the two 'without AI' options work even if the AI service is busy.")
+    st.divider()
+    st.write(f"Signed in as: **{role}**")
+    if st.button("Sign out"):
+        st.session_state.clear()
+        st.rerun()
 
 
 def run_extraction(data: bytes, mime: str):
@@ -216,3 +224,18 @@ with st.expander("📊 Analytics (SQL on DuckDB)"):
         )
         with st.expander("Show the SQL behind 'Most common rule failures'"):
             st.code(db.TOP_RULES_SQL, language="sql")
+
+    st.divider()
+    if role == "admin":
+        st.write("Admin tools")
+        st.download_button(
+            "Download activity log (CSV)",
+            data=db_admin.export_csv(),
+            file_name="activity_log.csv",
+            mime="text/csv",
+        )
+        if st.button("Clear activity log"):
+            db_admin.clear_events()
+            st.rerun()
+    else:
+        st.caption("Admin tools (export and clear the log) need the Authenticator sign-in.")
