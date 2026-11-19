@@ -28,6 +28,14 @@ jobs:
       - name: Build the daily summary
         run: python scripts/daily_summary.py
 
+      - name: Email the summary
+        continue-on-error: true
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_RECIPIENT: ${{ secrets.REPORT_RECIPIENT }}
+        run: python scripts/send_summary.py
+
       - name: Keep the generated XML files for a week
         uses: actions/upload-artifact@v4
         with:
