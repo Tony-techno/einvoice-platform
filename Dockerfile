@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=appuser:appuser app ./app
 COPY --chown=appuser:appuser sample_invoices ./sample_invoices
+COPY --chown=appuser:appuser .streamlit ./.streamlit
 RUN mkdir -p /app/data && chown appuser:appuser /app/data
 
 USER appuser
