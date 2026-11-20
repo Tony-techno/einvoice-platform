@@ -61,7 +61,7 @@ flowchart LR
 
 ## Other ways in
 
-**Telegram bot:** [@anvesh_invoice_demo_bot](https://t.me/anvesh_invoice_demo_bot). Send a photo of an invoice and it replies with PASS or FAIL and the list of problems. It runs on GitHub Actions, not on a server, so it checks for messages every few minutes. For instant replies the owner starts a "live window" from the Actions tab. Send fake invoices only.
+**Telegram bot:** [@anvesh_invoice_demo_bot](https://t.me/anvesh_invoice_demo_bot). Send a photo of an invoice and it replies with PASS or FAIL and the list of problems. It runs on GitHub Actions, not on a server, so it only answers when GitHub starts a run. Free scheduled runs can be minutes or hours apart.. For instant replies the owner starts a "live window" from the Actions tab. Send fake invoices only.
 
 **Daily report:** a scheduled GitHub Actions job generates synthetic invoices every day, validates them, builds XML for the valid ones, summarises the results with SQL, and commits [the report](https://github.com/Tony-techno/einvoice-platform/blob/main/reports/daily_summary.md) to this repo.
 
@@ -147,7 +147,8 @@ reports/          daily summaries written by GitHub Actions
 - Uses the free Gemini tier, so the AI features can occasionally be slow or unavailable when the service is busy. The "no AI" options are unaffected.
 - AI suggestions can be wrong, which is why every suggestion is re-validated and needs a click to apply.
 - The activity log is a local DuckDB file, so on the free host it resets when the app restarts.
-- The Telegram bot replies within minutes, not seconds, unless a live window is running.
+- The Telegram bot's scheduled replies can take minutes or hours, because GitHub's free scheduler is best-effort. A live window (Actions, then Telegram bot, then Run workflow) gives replies within seconds.
+- The daily report is started by the same best-effort scheduler, so it can begin hours after its scheduled time.
 - GitHub pauses scheduled workflows in a public repo after about 60 days without activity.
 - Use fake data only. Free-tier prompts may be used by Google to improve its products.
 - Google Cloud services that need a billing account (such as Cloud Run and Cloud Scheduler) are intentionally not used.
