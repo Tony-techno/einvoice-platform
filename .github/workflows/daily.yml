@@ -2,7 +2,7 @@ name: Daily summary
 
 on:
   schedule:
-    - cron: "30 3 * * *"
+    - cron: "17 4 * * *"
   workflow_dispatch:
 
 permissions:
