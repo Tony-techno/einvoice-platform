@@ -1,6 +1,6 @@
 # Daily summary
 
-Generated: 2026-11-20 08:22 UTC. Synthetic sample invoices (demo data only).
+Generated: 2026-11-21 12:41 UTC. Synthetic sample invoices (demo data only).
 
 | Metric | Value |
 |---|---|
@@ -13,21 +13,20 @@ Generated: 2026-11-20 08:22 UTC. Synthetic sample invoices (demo data only).
 
 | Rule | Times failed |
 |---|---|
-| R11 | 3 |
+| R08 | 3 |
+| R09 | 3 |
 | R02 | 2 |
-| R10 | 2 |
-| R08 | 1 |
-| R09 | 1 |
+| R11 | 1 |
 
 ## Per-invoice results
 
 | Invoice | Result | Rules failed |
 |---|---|---|
-| INV-20261120-001 | PASS | - |
-| INV-20261120-002 | FAIL | R02 |
-| INV-20261120-003 | PASS | - |
-| INV-20261120-004 | FAIL | R10,R11 |
-| INV-20261120-005 | FAIL | R08,R09 |
-| INV-20261120-006 | FAIL | R11 |
-| INV-20261120-007 | FAIL | R02 |
-| INV-20261120-008 | FAIL | R10,R11 |
+| INV-20261121-001 | FAIL | R02 |
+| INV-20261121-002 | PASS | - |
+| INV-20261121-003 | FAIL | R08,R09 |
+| INV-20261121-004 | FAIL | R11 |
+| INV-20261121-005 | PASS | - |
+| INV-20261121-006 | FAIL | R02 |
+| INV-20261121-007 | FAIL | R08,R09 |
+| INV-20261121-008 | FAIL | R08,R09 |
